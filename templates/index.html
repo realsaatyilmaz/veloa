@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Veloa.ge - უფასო განცხადებები / İlan Platformu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f4f6f8; }
+        .veloa-bg { background-color: #4f46e5; }
+        .veloa-text { color: #4f46e5; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col text-gray-800">
+
+    <!-- KARGO UYARISI & DİL SEÇİMİ -->
+    <div class="bg-amber-500 text-slate-900 text-xs font-semibold py-2 px-4 flex justify-between items-center">
+        <div class="flex items-center gap-2 mx-auto md:mx-0">
+            <i class="fa-solid fa-truck-slash text-base"></i>
+            <span id="txt-delivery">⚠️ ყურადღება: საიტზე მიტანის სერვისი (კარგო) არ არის! გარიგება ხდება ადგილზე.</span>
+        </div>
+        <div class="flex items-center gap-1 bg-amber-600/30 px-2 py-0.5 rounded border border-amber-700/30">
+            <i class="fa-solid fa-globe"></i>
+            <select id="lang-select" onchange="changeLang(this.value)" class="bg-transparent text-xs font-bold focus:outline-none cursor-pointer">
+                <option value="ka" selected>🇬🇪 ქართული</option>
+                <option value="az">🇦🇿 Azərbaycanca</option>
+                <option value="tr">🇹🇷 Türkçe</option>
+                <option value="en">🇬🇧 English</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- NAVBAR -->
+    <nav class="bg-white shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
+            <div onclick="filterCat('all')" class="flex items-center gap-2 cursor-pointer">
+                <div class="w-10 h-10 veloa-bg rounded-xl flex items-center justify-center text-white text-xl font-black">V</div>
+                <span class="text-2xl font-black text-slate-900">veloa<span class="veloa-text">.ge</span></span>
+            </div>
+
+            <div class="hidden md:flex flex-1 max-w-md mx-8">
+                <input type="text" id="search-input" onkeyup="renderListings()" placeholder="რას ეძებთ?..." class="w-full bg-gray-100 text-sm rounded-lg pl-4 pr-4 py-2 border focus:outline-none">
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div id="auth-guest" class="flex gap-2">
+                    <button onclick="openModal('login-modal')" id="btn-login-text" class="text-sm font-semibold text-gray-700 px-3 py-2">შესვლა</button>
+                    <button onclick="openModal('register-modal')" id="btn-reg-text" class="text-sm font-semibold bg-gray-200 px-3 py-2 rounded-lg">რეგისტრაცია</button>
+                </div>
+                <div id="auth-user" class="flex items-center gap-2 hidden">
+                    <span id="user-display-name" class="text-xs font-bold text-indigo-600"></span>
+                    <button onclick="logout()" title="Çıkış" class="p-2 text-red-500"><i class="fa-solid fa-right-from-bracket"></i></button>
+                </div>
+
+                <button onclick="handlePostAdClick()" class="veloa-bg text-white text-sm font-bold px-4 py-2 rounded-xl shadow flex items-center gap-2">
+                    <i class="fa-solid fa-plus-circle"></i>
+                    <span id="btn-post-text">განცხადების დამატება</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- FİLTRELER VE ŞEHİRLER -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
+        <div class="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-wrap gap-4 items-center justify-between">
+            <div class="flex flex-wrap gap-3 w-full md:w-auto">
+                <select id="filter-cat" onchange="renderListings()" class="bg-gray-50 border text-sm rounded-lg p-2.5">
+                    <!-- Javascript ile seçili dile göre yüklenecek -->
+                </select>
+
+                <select id="filter-city" onchange="renderListings()" class="bg-gray-50 border text-sm rounded-lg p-2.5 max-w-xs">
+                    <!-- Javascript ile yüklenecek -->
+                </select>
+            </div>
+        </div>
+
+        <div id="listings-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
+    </main>
+
+    <!-- MODAL: GİRİŞ YAP -->
+    <div id="login-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 relative">
+            <button onclick="closeModal('login-modal')" class="absolute top-4 right-4 text-gray-400"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <h2 class="text-2xl font-bold mb-4" id="modal-login-title">შესვლა</h2>
+            <form onsubmit="submitLogin(event)" class="space-y-4">
+                <input type="email" id="login-email" placeholder="E-posta" required class="w-full border p-2.5 rounded-lg text-sm">
+                <input type="password" id="login-pass" placeholder="Şifre" required class="w-full border p-2.5 rounded-lg text-sm">
+                <button type="submit" class="w-full veloa-bg text-white font-bold py-2.5 rounded-xl" id="modal-login-btn">შესვლა</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: KAYIT OL -->
+    <div id="register-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeModal('register-modal')" class="absolute top-4 right-4 text-gray-400"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <h2 class="text-2xl font-bold mb-4" id="modal-reg-title">რეგისტრაცია</h2>
+            <form onsubmit="submitRegister(event)" class="space-y-3">
+                <input type="text" id="reg-name" placeholder="Ad Soyad" required class="w-full border p-2.5 rounded-lg text-sm">
+                <input type="email" id="reg-email" placeholder="E-posta" required class="w-full border p-2.5 rounded-lg text-sm">
+                <input type="tel" id="reg-phone" placeholder="Telefon (+995...)" required class="w-full border p-2.5 rounded-lg text-sm">
+                <select id="reg-city" class="w-full border p-2.5 rounded-lg text-sm">
+                    <!-- Javascript ile doldurulacak -->
+                </select>
+                <input type="password" id="reg-pass" placeholder="Şifre" required class="w-full border p-2.5 rounded-lg text-sm">
+                <button type="submit" class="w-full veloa-bg text-white font-bold py-2.5 rounded-xl" id="modal-reg-btn">რეგისტრაცია</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: İLAN EKLE -->
+    <div id="ad-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeModal('ad-modal')" class="absolute top-4 right-4 text-gray-400"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <h2 class="text-2xl font-bold mb-2" id="modal-ad-title">ახალი განცხადება</h2>
+            <p class="text-xs text-amber-600 bg-amber-50 p-2 rounded mb-4" id="modal-ad-notice">🚫 Kargo hizmetimiz yoktur. Ürün elden teslim edilir.</p>
+            
+            <form onsubmit="submitAd(event)" class="space-y-3" enctype="multipart/form-data">
+                <div>
+                    <label class="block text-xs font-bold mb-1" id="lbl-form-title">სათაური *</label>
+                    <input type="text" id="ad-title" placeholder="PS3 HEN Yazılım / iPhone 13" required class="w-full border p-2 rounded text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold mb-1" id="lbl-form-cat">კატეგორია *</label>
+                        <select id="ad-cat" required class="w-full border p-2 rounded text-sm">
+                            <!-- Javascript ile doldurulacak -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold mb-1" id="lbl-form-city">ქალაქი *</label>
+                        <select id="ad-city" required class="w-full border p-2 rounded text-sm">
+                            <!-- Javascript ile doldurulacak -->
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold mb-1" id="lbl-form-price">ფასი (₾) *</label>
+                        <input type="number" step="any" id="ad-price" placeholder="50" required class="w-full border p-2 rounded text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold mb-1" id="lbl-form-curr">ვალუტა</label>
+                        <select id="ad-currency" class="w-full border p-2 rounded text-sm font-bold">
+                            <option value="₾">GEL (₾)</option>
+                            <option value="$">USD ($)</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold mb-1" id="lbl-form-img">ფოტო</label>
+                    <input type="file" id="ad-image" accept="image/*" class="w-full text-xs">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold mb-1" id="lbl-form-desc">აღწერა *</label>
+                    <textarea id="ad-desc" rows="3" placeholder="დეტალები..." required class="w-full border p-2 rounded text-sm"></textarea>
+                </div>
+                <button type="submit" class="w-full veloa-bg text-white font-bold py-2.5 rounded-xl" id="btn-pub">გამოქვეყნება</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCRIPT & DİL SİSTEMİ -->
+    <script>
+        let currentUser = null;
+        let allListings = [];
+        let currentLang = 'ka';
+
+        const categoriesData = [
+            { id: 'electronics', ka: '📱 ტექნიკა & ელექტრონიკა', tr: '📱 Elektronik & Telefon', az: '📱 Elektronika & Telefon', en: '📱 Electronics & Phones' },
+            { id: 'consoles', ka: '🎮 სათამაშო კონსოლები & PS3 HEN', tr: '🎮 Oyun Konsolları & PS3 HEN', az: '🎮 Oyun Konsolları & PS3 HEN', en: '🎮 Gaming Consoles & PS3 HEN' },
+            { id: 'fashion', ka: '👗 ტანსაცმელი & მოდა', tr: '👗 Giyim & Moda', az: '👗 Geyim & Moda', en: '👗 Clothes & Fashion' },
+            { id: 'home', ka: '🛋️ სახლი & ავეჯი', tr: '🛋️ Ev & Yaşam / Mobilya', az: '🛋️ Ev & Mebel', en: '🛋️ Home & Furniture' },
+            { id: 'appliances', ka: '🔌 საყოფაცხოვრებო ტექნიკა', tr: '🔌 Beyaz Eşya & Ev Aletleri', az: '🔌 Məişət Texnikası', en: '🔌 Home Appliances' },
+            { id: 'beauty', ka: '💄 კოსმეტიკა & მოვლა', tr: '💄 Kozmetik & Kişisel Bakım', az: '💄 Kosmetika & Qulluq', en: '💄 Beauty & Care' },
+            { id: 'sports', ka: '⚽ სპორტი & ჰობი', tr: '⚽ Spor & Outdoor', az: '⚽ İdman & Hobbi', en: '⚽ Sports & Outdoor' },
+            { id: 'vehicles', ka: '🚗 ტრანსპორტი & ავტო', tr: '🚗 Vasıta & Otomotiv', az: '🚗 Nəqliyyat & Avto', en: '🚗 Vehicles & Auto' },
+            { id: 'realestate', ka: '🏠 უძრავი ქონება', tr: '🏠 Emlak (Konut / Arsa)', az: '🏠 Daşınmaz Əmlak', en: '🏠 Real Estate' },
+            { id: 'services', ka: '🛠️ სერვისები & პროგრამირება', tr: '🛠️ Hizmetler & Yazılım Servisi', az: '🛠️ Xidmətlər & Proqramlaşdırma', en: '🛠️ Services & Software' },
+            { id: 'jobs', ka: '💼 ვაკანსიები', tr: '💼 İş İlanları', az: '💼 Vakansiyalar', en: '💼 Jobs & Vacancies' },
+            { id: 'other', ka: '📦 სხვადასხვა', tr: '📦 Diğer / Çeşitli', az: '📦 Digər / Çeşidli', en: '📦 Other' }
+        ];
+
+        const citiesData = [
+            "Tbilisi", "Batumi", "Kutaisi", "Rustavi", "Sukhumi", "Gori", "Poti", "Zugdidi", "Tshinvali", "Samtredia",
+            "Khashuri", "Senaki", "Zestafoni", "Marneuli", "Telavi", "Akhaltsikhe", "Kobuleti", "Ozurgeti", "Kaspi", "Chiatura",
+            "Tskaltubo", "Sagarejo", "Gardabani", "Borjomi", "Tkibuli", "Khoni", "Bolnisi", "Akhalkalaki", "Gurjaani", "Gagra",
+            "Mtskheta", "Kvareli", "Dmanisi", "Pitsunda", "Ochamchire", "Tkvarcheli", "Tsalenjikha", "Lagodekhi", "Ninocminda",
+            "Dusheti", "Sachkhere", "Dedoplistskaro", "Vale", "Signagi", "Khobi", "Tzalka", "Keda", "Kareli", "Gali", "Shuakhevi",
+            "Khulo", "Abastumani", "Ambrolauri", "Baghdati", "Vani", "Jvari", "Oni", "Tsageri", "Mestia", "Stepantsminda", "Tianeti",
+            "Lanchkhuti", "Chokhatauri", "Lentekhi", "Chakvi"
+        ];
+
+        const dict = {
+            ka: {
+                delivery: "⚠️ ყურადღება: საიტზე მიტანის სერვისი (კარგო) არ არის! გარიგება ხდება ადგილზე.",
+                search: "რას ეძებთ?...",
+                login: "შესვლა",
+                reg: "რეგისტრაცია",
+                post: "განცხადების დამატება",
+                catAll: "ყველა კატეგორია",
+                cityAll: "ყველა ქალაქი",
+                noAd: "განცხადება არ მოიძებნა.",
+                delete: "წაშლა",
+                cargoNotice: "🚫 კარგო არ არის. ჩაბარება ხდება ადგილზე!",
+                formTitle: "სათაური *",
+                formCat: "კატეგორია *",
+                formCity: "ქალაქი *",
+                formPrice: "ფასი (₾) *",
+                formCurr: "ვალუტა",
+                formImg: "ფოტო",
+                formDesc: "აღწერა *"
+            },
+            az: {
+                delivery: "⚠️ Diqqət: Saytda kargo/Çatdırılma xidməti yoxdur! Təhvil almaq təkbətək olunur.",
+                search: "Nə axtarırsınız?...",
+                login: "Daxil ol",
+                reg: "Qeydiyyat",
+                post: "Elan Əlavə Et",
+                catAll: "Bütün Kateqoriyalar",
+                cityAll: "Bütün Şəhərlər",
+                noAd: "Heç bir elan tapılmadı.",
+                delete: "Sil",
+                cargoNotice: "🚫 Kargo yoxdur. Məhsul əlbəəl təhvil verilir!",
+                formTitle: "Başlıq *",
+                formCat: "Kateqoriya *",
+                formCity: "Şəhər *",
+                formPrice: "Qiymət (₾) *",
+                formCurr: "Valyuta",
+                formImg: "Şəkil",
+                formDesc: "Təsvir *"
+            },
+            tr: {
+                delivery: "⚠️ Dikkat: Sitemizde kargo/teslimat hizmeti yoktur! Alışveriş elden yapılır.",
+                search: "Ne arıyorsunuz?...",
+                login: "Giriş Yap",
+                reg: "Kayıt Ol",
+                post: "İlan Ekle",
+                catAll: "Tüm Kategoriler",
+                cityAll: "Tüm Şehirler",
+                noAd: "İlan bulunamadı.",
+                delete: "İlanı Sil",
+                cargoNotice: "🚫 Kargo hizmetimiz yoktur. Ürün elden teslim edilir.",
+                formTitle: "Başlık *",
+                formCat: "Kategori *",
+                formCity: "Şehir *",
+                formPrice: "Fiyat (₾) *",
+                formCurr: "Para Birimi",
+                formImg: "Fotoğraf",
+                formDesc: "Açıklama *"
+            },
+            en: {
+                delivery: "⚠️ Notice: No delivery or cargo service available! In-person pickup only.",
+                search: "What are you looking for?...",
+                login: "Log In",
+                reg: "Register",
+                post: "Post Ad",
+                catAll: "All Categories",
+                cityAll: "All Cities",
+                noAd: "No listings found.",
+                delete: "Delete",
+                cargoNotice: "🚫 No delivery service. Pick-up in person only!",
+                formTitle: "Title *",
+                formCat: "Category *",
+                formCity: "City *",
+                formPrice: "Price (₾) *",
+                formCurr: "Currency",
+                formImg: "Photo",
+                formDesc: "Description *"
+            }
+        };
+
+        window.onload = function() {
+            checkUserSession();
+            loadListings();
+            changeLang('ka');
+        };
+
+        function changeLang(lang) {
+            currentLang = lang;
+            const t = dict[lang];
+
+            document.getElementById('txt-delivery').innerText = t.delivery;
+            document.getElementById('search-input').placeholder = t.search;
+            document.getElementById('btn-login-text').innerText = t.login;
+            document.getElementById('btn-reg-text').innerText = t.reg;
+            document.getElementById('btn-post-text').innerText = t.post;
+
+            document.getElementById('modal-login-title').innerText = t.login;
+            document.getElementById('modal-login-btn').innerText = t.login;
+            document.getElementById('modal-reg-title').innerText = t.reg;
+            document.getElementById('modal-reg-btn').innerText = t.reg;
+            document.getElementById('modal-ad-title').innerText = t.post;
+            document.getElementById('modal-ad-notice').innerText = t.cargoNotice;
+            document.getElementById('btn-pub').innerText = t.post;
+
+            document.getElementById('lbl-form-title').innerText = t.formTitle;
+            document.getElementById('lbl-form-cat').innerText = t.formCat;
+            document.getElementById('lbl-form-city').innerText = t.formCity;
+            document.getElementById('lbl-form-price').innerText = t.formPrice;
+            document.getElementById('lbl-form-curr').innerText = t.formCurr;
+            document.getElementById('lbl-form-img').innerText = t.formImg;
+            document.getElementById('lbl-form-desc').innerText = t.formDesc;
+
+            // DİNAMİK KATEGORİ ÇEVİRİSİ YÜKLE
+            const filterCatSelect = document.getElementById('filter-cat');
+            const adCatSelect = document.getElementById('ad-cat');
+            
+            let catOptionsHtml = `<option value="all">${t.catAll}</option>`;
+            let adCatOptionsHtml = ``;
+
+            categoriesData.forEach(c => {
+                const label = c[lang] || c['ka'];
+                catOptionsHtml += `<option value="${c.id}">${label}</option>`;
+                adCatOptionsHtml += `<option value="${c.id}">${label}</option>`;
+            });
+
+            filterCatSelect.innerHTML = catOptionsHtml;
+            adCatSelect.innerHTML = adCatOptionsHtml;
+
+            // DİNAMİK ŞEHİR LİSTESİ YÜKLE (HEM FİLTRE HEM İLAN EKLEME HEM KAYIT FORMU İÇİN)
+            const filterCitySelect = document.getElementById('filter-city');
+            const adCitySelect = document.getElementById('ad-city');
+            const regCitySelect = document.getElementById('reg-city');
+
+            let cityOptionsHtml = `<option value="all">${t.cityAll}</option>`;
+            let adCityOptionsHtml = ``;
+
+            citiesData.forEach(city => {
+                cityOptionsHtml += `<option value="${city}">${city}</option>`;
+                adCityOptionsHtml += `<option value="${city}">${city}</option>`;
+            });
+
+            filterCitySelect.innerHTML = cityOptionsHtml;
+            adCitySelect.innerHTML = adCityOptionsHtml;
+            regCitySelect.innerHTML = adCityOptionsHtml;
+
+            renderListings();
+        }
+
+        function checkUserSession() {
+            fetch('/api/me')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.logged_in) {
+                        currentUser = data.user;
+                        document.getElementById('auth-guest').classList.add('hidden');
+                        document.getElementById('auth-user').classList.remove('hidden');
+                        document.getElementById('user-display-name').innerText = currentUser.full_name;
+                    } else {
+                        currentUser = null;
+                        document.getElementById('auth-guest').classList.remove('hidden');
+                        document.getElementById('auth-user').classList.add('hidden');
+                    }
+                });
+        }
+
+        function loadListings() {
+            fetch('/api/listings')
+                .then(res => res.json())
+                .then(data => {
+                    allListings = data;
+                    renderListings();
+                });
+        }
+
+        function formatSafeTitle(text) {
+            if (!text) return '';
+            return text.replace(/(\bps3\s+hen\b|\bhen\b)/gi, '<span class="notranslate font-extrabold text-indigo-700" translate="no">$1</span>');
+        }
+
+        function renderListings() {
+            const grid = document.getElementById('listings-grid');
+            const cat = document.getElementById('filter-cat').value;
+            const city = document.getElementById('filter-city').value;
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const t = dict[currentLang];
+
+            let filtered = allListings.filter(item => {
+                const matchCat = cat === 'all' || item.category === cat;
+                const matchCity = city === 'all' || item.city.toLowerCase() === city.toLowerCase();
+                const matchSearch = item.title.toLowerCase().includes(search) || item.description.toLowerCase().includes(search);
+                return matchCat && matchCity && matchSearch;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<p class="col-span-full text-center py-10 text-gray-500">${t.noAd}</p>`;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(item => `
+                <div class="bg-white rounded-xl border p-3 flex flex-col justify-between shadow-sm">
+                    <div class="aspect-video bg-gray-100 rounded-lg overflow-hidden mb-2">
+                        <img src="${item.image_url}" class="w-full h-full object-cover">
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-sm line-clamp-1" translate="no">${formatSafeTitle(escapeHtml(item.title))}</h4>
+                        <p class="text-xs text-gray-500"><i class="fa-solid fa-location-dot"></i> ${item.city}</p>
+                    </div>
+                    <div class="mt-2 border-t pt-2 flex justify-between items-center">
+                        <span class="text-base font-extrabold text-indigo-600">${item.price} ${item.currency}</span>
+                        <span class="text-[10px] text-gray-400">${item.date}</span>
+                    </div>
+                    <div class="mt-2 bg-gray-50 p-2 rounded text-xs">
+                        <p class="font-semibold">${escapeHtml(item.user_name)}</p>
+                        <a href="tel:${item.user_phone}" class="text-indigo-600 font-bold"><i class="fa-solid fa-phone"></i> ${item.user_phone}</a>
+                    </div>
+                    ${currentUser && currentUser.id === item.user_id ? `
+                        <button onclick="deleteListing(${item.id})" class="mt-2 bg-red-50 text-red-600 text-xs py-1 rounded font-bold">${t.delete}</button>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function submitRegister(e) {
+            e.preventDefault();
+            const body = {
+                full_name: document.getElementById('reg-name').value,
+                email: document.getElementById('reg-email').value,
+                phone: document.getElementById('reg-phone').value,
+                city: document.getElementById('reg-city').value,
+                password: document.getElementById('reg-pass').value
+            };
+
+            fetch('/api/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    closeModal('register-modal');
+                    checkUserSession();
+                } else alert(data.message);
+            });
+        }
+
+        function submitLogin(e) {
+            e.preventDefault();
+            const body = {
+                email: document.getElementById('login-email').value,
+                password: document.getElementById('login-pass').value
+            };
+
+            fetch('/api/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    closeModal('login-modal');
+                    checkUserSession();
+                } else alert(data.message);
+            });
+        }
+
+        function logout() {
+            fetch('/api/logout', {method: 'POST'}).then(() => {
+                checkUserSession();
+                loadListings();
+            });
+        }
+
+        function submitAd(e) {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('title', document.getElementById('ad-title').value);
+            formData.append('category', document.getElementById('ad-cat').value);
+            formData.append('city', document.getElementById('ad-city').value);
+            formData.append('price', document.getElementById('ad-price').value);
+            formData.append('currency', document.getElementById('ad-currency').value);
+            formData.append('description', document.getElementById('ad-desc').value);
+            
+            const fileInput = document.getElementById('ad-image');
+            if (fileInput.files[0]) {
+                formData.append('image', fileInput.files[0]);
+            }
+
+            fetch('/api/listings', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    closeModal('ad-modal');
+                    loadListings();
+                } else alert(data.message);
+            });
+        }
+
+        function deleteListing(id) {
+            if(!confirm('İlanı silmek istediğinize emin misiniz?')) return;
+            fetch(`/api/listings/${id}`, {method: 'DELETE'})
+                .then(res => res.json())
+                .then(data => {
+                    if(data.success) loadListings();
+                    else alert(data.message);
+                });
+        }
+
+        function handlePostAdClick() {
+            if(!currentUser) openModal('login-modal');
+            else openModal('ad-modal');
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function escapeHtml(str) {
+            return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;") : '';
+        }
+    </script>
+</body>
+</html>
